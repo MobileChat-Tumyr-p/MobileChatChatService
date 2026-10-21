@@ -9,6 +9,12 @@ import type {
   AllChat,
   GetChatListRequest,
 } from '@tumy/mobile-chat-grpc/gen/chat.js';
+import type {
+  GetMessagesRequest,
+  MessageList,
+  MessageResponse,
+  SendMessageRequest,
+} from '@tumy/mobile-chat-grpc/gen/messages.js';
 
 import { ChatService } from './chat.service.js';
 
@@ -61,5 +67,45 @@ export class ChatController {
         members: chat.members.length,
       })),
     };
+  }
+
+  @GrpcMethod('sendMessage', 'send')
+  async send(data: SendMessageRequest): Promise<MessageResponse> {
+    if (!data.chatId || !data.authorId || !data.text?.trim()) {
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: 'Потрібні chatId, authorId та текст',
+      });
+    }
+
+    if (data.text.trim().length > 2000) {
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: 'Текст не може перевищувати 2000 символів',
+      });
+    }
+
+    return this.chatService.sendMessage(
+      data.chatId,
+      data.authorId,
+      data.text.trim(),
+    );
+  }
+
+  @GrpcMethod('getMessages', 'get')
+  async getMessages(data: GetMessagesRequest): Promise<MessageList> {
+    if (!data.chatId || !data.userId) {
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: 'Потрібні chatId та userId',
+      });
+    }
+
+    const messages = await this.chatService.getMessages(
+      data.chatId,
+      data.userId,
+    );
+
+    return { messages };
   }
 }

@@ -17,6 +17,7 @@ async function bootstrap() {
         protoPath: [
           'node_modules/@tumy/mobile-chat-grpc/proto/createChat.proto',
           'node_modules/@tumy/mobile-chat-grpc/proto/chat.proto',
+          'node_modules/@tumy/mobile-chat-grpc/proto/messages.proto',
         ],
         url,
         loader: {

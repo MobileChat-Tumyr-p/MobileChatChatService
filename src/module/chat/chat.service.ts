@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
+import { status } from '@grpc/grpc-js';
+import type { MessageResponse } from '@tumy/mobile-chat-grpc/gen/messages.js';
+
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 @Injectable()
@@ -32,5 +36,75 @@ export class ChatService {
         messages: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
+  }
+
+  public async sendMessage(
+    chatId: number,
+    authorId: number,
+    text: string,
+  ): Promise<MessageResponse> {
+    const chat = await this.prisma.chat.findUnique({ where: { id: chatId } });
+
+    if (!chat) {
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: 'Чат не знайдено',
+      });
+    }
+
+    const membership = await this.prisma.chatMember.findFirst({
+      where: { chatId, userId: authorId },
+    });
+
+    if (!membership) {
+      throw new RpcException({
+        code: status.PERMISSION_DENIED,
+        message: 'Ви не учасник цього чату',
+      });
+    }
+
+    const message = await this.prisma.message.create({
+      data: { chatId, authorId, text },
+    });
+
+    await this.prisma.chat.update({
+      where: { id: chatId },
+      data: { updatedAt: new Date() },
+    });
+
+    return {
+      id: message.id,
+      chatId: message.chatId,
+      authorId: message.authorId,
+      text: message.text,
+      createdAt: message.createdAt.toISOString(),
+    };
+  }
+
+  public async getMessages(chatId: number, userId: number) {
+    const membership = await this.prisma.chatMember.findFirst({
+      where: { chatId, userId },
+    });
+
+    if (!membership) {
+      throw new RpcException({
+        code: status.PERMISSION_DENIED,
+        message: 'Ви не учасник цього чату',
+      });
+    }
+
+    const messages = await this.prisma.message.findMany({
+      where: { chatId },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    });
+
+    return messages.map((message) => ({
+      id: message.id,
+      chatId: message.chatId,
+      authorId: message.authorId,
+      text: message.text,
+      createdAt: message.createdAt.toISOString(),
+    })).reverse();
   }
 }
