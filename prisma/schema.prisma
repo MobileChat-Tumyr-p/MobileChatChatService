@@ -12,6 +12,7 @@ model Chat {
   id        Int      @id @default(autoincrement())
   title     String
   ownerId   Int      @map("owner_id")
+  isDirect  Boolean  @default(false) @map("is_direct")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
