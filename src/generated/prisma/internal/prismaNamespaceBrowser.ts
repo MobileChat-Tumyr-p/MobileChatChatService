@@ -76,6 +76,7 @@ export const ChatScalarFieldEnum = {
   id: 'id',
   title: 'title',
   ownerId: 'ownerId',
+  isDirect: 'isDirect',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
