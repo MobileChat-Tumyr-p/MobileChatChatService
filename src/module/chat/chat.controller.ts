@@ -7,7 +7,11 @@ import type {
 } from '@tumy/mobile-chat-grpc/gen/createChat.js';
 import type {
   AllChat,
+  DirectChatRequest,
+  DirectChatResponse,
   GetChatListRequest,
+  GetChatMembersRequest,
+  ChatMembers,
 } from '@tumy/mobile-chat-grpc/gen/chat.js';
 import type {
   GetMessagesRequest,
@@ -65,6 +69,51 @@ export class ChatController {
         updatedAt: chat.updatedAt.toISOString(),
         unreadCount: 0,
         members: chat.members.length,
+        memberIds: chat.members.map((member) => member.userId),
+        isDirect: chat.isDirect,
+      })),
+    };
+  }
+
+  @GrpcMethod('directChatService', 'ensureDirectChat')
+  async ensureDirectChat(data: DirectChatRequest): Promise<DirectChatResponse> {
+    if (!data.userId || !data.peerId) {
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: 'Потрібні userId та peerId',
+      });
+    }
+
+    if (data.userId === data.peerId) {
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: 'Не можна відкривати ЛС з самим собою',
+      });
+    }
+
+    const chat = await this.chatService.ensureDirectChat(
+      data.userId,
+      data.peerId,
+    );
+
+    return { chatId: chat.id };
+  }
+
+  @GrpcMethod('getChatMembersService', 'getChatMembers')
+  async getChatMembers(data: GetChatMembersRequest): Promise<ChatMembers> {
+    if (!data.chatId || !data.userId) {
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: 'Потрібні chatId та userId',
+      });
+    }
+
+    const members = await this.chatService.getMembers(data.chatId, data.userId);
+
+    return {
+      members: members.map((member) => ({
+        userId: member.userId,
+        role: member.role,
       })),
     };
   }
