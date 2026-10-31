@@ -136,7 +136,12 @@ export class ChatService {
     });
   }
 
-  public async getMessages(chatId: number, userId: number) {
+  public async getMessages(
+    chatId: number,
+    userId: number,
+    limit: number,
+    offset: number,
+  ) {
     const membership = await this.prisma.chatMember.findFirst({
       where: { chatId, userId },
     });
@@ -148,13 +153,19 @@ export class ChatService {
       });
     }
 
+    // Сторінка від найновіших: offset відступає від кінця історії,
+    // take обрізає до limit. Пагінація за автоінкрементом id надійна
+    // навіть при однакових createdAt.
+    const take = limit > 0 ? limit : 30;
+
     const messages = await this.prisma.message.findMany({
       where: { chatId },
-      orderBy: { createdAt: 'desc' },
-      take: 30,
+      orderBy: { id: 'desc' },
+      skip: offset > 0 ? offset : undefined,
+      take,
     });
 
-    return messages.map((message) => ({
+    return messages.reverse().map((message) => ({
       id: message.id,
       chatId: message.chatId,
       authorId: message.authorId,
