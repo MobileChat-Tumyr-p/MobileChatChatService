@@ -684,6 +684,7 @@ export const ChatScalarFieldEnum = {
   id: 'id',
   title: 'title',
   ownerId: 'ownerId',
+  isDirect: 'isDirect',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -760,6 +761,13 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'String[]'
  */
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
