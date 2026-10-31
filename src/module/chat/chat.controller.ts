@@ -153,6 +153,8 @@ export class ChatController {
     const messages = await this.chatService.getMessages(
       data.chatId,
       data.userId,
+      data.limit ?? 0,
+      data.offset ?? 0,
     );
 
     return { messages };
