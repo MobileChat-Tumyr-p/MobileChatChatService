@@ -27,6 +27,42 @@ export class ChatService {
     });
   }
 
+  public async ensureDirectChat(userId: number, peerId: number) {
+    const candidates = await this.prisma.chat.findMany({
+      where: {
+        isDirect: true,
+        members: { some: { userId } },
+      },
+      include: { members: true },
+    });
+
+    const existing = candidates.find(
+      (chat) =>
+        chat.members.length === 2 &&
+        chat.members.some((member) => member.userId === userId) &&
+        chat.members.some((member) => member.userId === peerId),
+    );
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.prisma.chat.create({
+      data: {
+        title: '',
+        ownerId: userId,
+        isDirect: true,
+        members: {
+          create: [
+            { userId, role: 'owner' },
+            { userId: peerId, role: 'member' },
+          ],
+        },
+      },
+      include: { members: true },
+    });
+  }
+
   public async list(userId: number) {
     return this.prisma.chat.findMany({
       where: { members: { some: { userId } } },
@@ -79,6 +115,25 @@ export class ChatService {
       text: message.text,
       createdAt: message.createdAt.toISOString(),
     };
+  }
+
+  public async getMembers(chatId: number, userId: number) {
+    const membership = await this.prisma.chatMember.findFirst({
+      where: { chatId, userId },
+    });
+
+    if (!membership) {
+      throw new RpcException({
+        code: status.PERMISSION_DENIED,
+        message: 'Ви не учасник цього чату',
+      });
+    }
+
+    return this.prisma.chatMember.findMany({
+      where: { chatId },
+      select: { userId: true, role: true },
+      orderBy: { userId: 'asc' },
+    });
   }
 
   public async getMessages(chatId: number, userId: number) {
